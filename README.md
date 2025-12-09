@@ -1,25 +1,67 @@
-# 🕵️ Real-Time Fraud Detection Pipeline
+cat <<EOF > README.md
+# 🕵️ Real-Time Retail Fraud Detection Pipeline
 
-A comprehensive Data Engineering project demonstrating a real-time CDC (Change Data Capture) pipeline using **Kafka**, **Spark Streaming**, **Debezium**, and **Redis**.
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Apache Spark](https://img.shields.io/badge/Apache%20Spark-FDEE21?style=for-the-badge&logo=apachespark&logoColor=black)
+![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-000?style=for-the-badge&logo=apachekafka)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 
-## 🏗 Architecture
+A comprehensive **End-to-End Data Engineering Project** designed to detect anomalies and aggregate sales data in real-time. This project simulates a retail environment in Italy, capturing transactions from multiple databases, processing them via Spark Streaming, and visualizing the results.
 
-1.  **Data Generation**: Python script simulates Italian retail transactions.
-2.  **Databases**: PostgreSQL and MySQL store raw transactions.
-3.  **CDC (Debezium)**: Captures DB changes and streams them to Kafka.
-4.  **Processing (Spark)**: Aggregates sales per clerk in real-time.
-5.  **Storage (Redis)**: Stores live analytics.
-6.  **Visualization**: Grafana (Optional) or Redis CLI.
+---
 
-## 🚀 How to Run
+## 🏗 System Architecture
+
+The following diagram illustrates the data flow from generation to visualization.
+*(This diagram renders automatically on GitHub)*.
+
+![diagram](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+
+---
+
+## 🛠 Tech Stack & Features
+
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Orchestration** | **Docker Compose** | Manages the lifecycle of 10+ microservices. |
+| **Data Gen** | **Python (Faker)** | Simulates realistic transactions with Italian metadata. |
+| **Databases** | **Postgres & MySQL** | Simulates sharded operational databases (OLTP). |
+| **Ingestion** | **Debezium** | Performs CDC (Change Data Capture) to stream DB changes. |
+| **Broker** | **Kafka & Zookeeper** | Decouples the source databases from the processing layer. |
+| **Processing** | **Spark Streaming** | Reads Kafka streams, parses JSON, and performs aggregations. |
+| **State Store** | **Redis** | Stores the real-time aggregated metrics for low-latency access. |
+| **Monitoring** | **Kafka UI & Grafana** | Provides visibility into topics and final metrics. |
+
+---
+
+## 📂 Project Structure
+
+\`\`\`bash
+├── build/
+│   ├── generator/       # Python script & Dockerfile for data generation
+│   └── spark/           # Spark job (Redis Sink) & Dockerfile
+├── docker-compose.yaml  # Main infrastructure definition
+├── start-connectors.sh  # Script to initialize Debezium connectors
+├── .env                 # Secrets (Not committed to Git)
+└── README.md            # Documentation
+\`\`\`
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to deploy the pipeline on your local machine or server.
 
 ### 1. Prerequisites
-* Docker & Docker Compose
+* Docker Engine & Docker Compose installed.
+* 4GB+ RAM available.
 
-### 2. Setup Configuration
-Create a `.env` file in the root directory (do not commit this file):
+### 2. Setup Environment Variables
+Create a \`.env\` file in the root directory. **Do not commit this file.**
 
-```ini
+\`\`\`ini
+# Database Credentials
 POSTGRES_USER=postgres
 POSTGRES_PASS=123456
 POSTGRES_DB=postgres
@@ -29,26 +71,58 @@ MYSQL_USER=mysqluser
 MYSQL_PASS=mysqlpw
 MYSQL_DB=mariadb
 
+# Visualization
 GRAFANA_USER=admin
 GRAFANA_PASS=admin
 
+# Infrastructure
 KAFKA_HOST=kafka
 REDIS_HOST=redis
-```
+\`\`\`
 
-### 3. Launch the Pipeline
-```bash
+### 3. Build & Launch
+This command builds the custom images for Spark and the Generator, then starts all services.
+
+\`\`\`bash
 docker compose up --build -d
-```
+\`\`\`
 
 ### 4. Activate Connectors
-Once containers are running (wait ~1 min), run:
-```bash
-./start-connectors.sh
-```
+Wait about 60 seconds for Kafka Connect to start, then register the Debezium connectors:
 
-### 5. Verify
-Check real-time data in Redis:
-```bash
+\`\`\`bash
+./start-connectors.sh
+\`\`\`
+*You should see a \`201 Created\` response.*
+
+---
+
+## 🧪 Verification
+
+### Check Data Flow
+You can inspect the real-time data being written to Redis:
+
+\`\`\`bash
 docker exec -it redis redis-cli keys "*"
-```
+\`\`\`
+
+**Expected Output:**
+\`\`\`text
+1) "Mysql:Alessandro Del Piero"
+2) "Postgresql:Giulia Bianchi"
+3) "Postgresql:Fabio Capello"
+...
+\`\`\`
+
+### Monitoring
+* **Kafka UI**: Access at \`http://localhost:9090\` to view topics and messages.
+* **Grafana**: Access at \`http://localhost:3000\` (Login with credentials from .env).
+
+---
+
+## 🤝 Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+[MIT](https://choosealicense.com/licenses/mit/)
+EOF
