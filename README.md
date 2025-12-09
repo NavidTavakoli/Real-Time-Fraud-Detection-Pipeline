@@ -74,8 +74,6 @@ Follow these instructions to deploy the pipeline on your local machine or server
 
 Copy the example environment file to create your local secrets file. This file contains database passwords and configuration.
 
-Bash
-
 ```
 cp .env.example .env
 ```
@@ -86,8 +84,6 @@ cp .env.example .env
 
 Build the custom Docker images and start the services in detached mode:
 
-Bash
-
 ```
 docker compose up --build -d
 ```
@@ -97,8 +93,6 @@ docker compose up --build -d
 ### 4. Activate Connectors
 
 Once the containers are running, register the Debezium connectors to start the CDC process:
-
-Bash
 
 ```
 ./start-connectors.sh
@@ -113,8 +107,6 @@ Bash
 ### 1. Verify Data in Redis
 
 Check if the Spark job is successfully writing aggregated data to Redis:
-
-Bash
 
 ```
 docker exec -it redis redis-cli keys "*"
@@ -135,8 +127,6 @@ Plaintext
 
 Ensure the Python script is inserting data correctly:
 
-Bash
-
 ```
 docker logs -f generator
 ```
@@ -155,4 +145,5 @@ Contributions are welcome! Please open an issue first to discuss what you would 
 ## 📄 License
 
 This project is licensed under the MIT License.
+
 
