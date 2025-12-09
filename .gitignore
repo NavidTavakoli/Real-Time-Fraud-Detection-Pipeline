@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.log
+*.zip
+.DS_Store
+.idea/
+.vscode/
+ivy/

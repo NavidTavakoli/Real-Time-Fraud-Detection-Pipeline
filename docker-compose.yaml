@@ -1,0 +1,141 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: debezium/zookeeper:2.1
+    container_name: zookeeper
+    ports:
+      - 2181:2181
+    networks:
+      - fraud-net
+
+  kafka:
+    image: debezium/kafka:2.1
+    container_name: kafka
+    ports:
+      - 9092:9092
+    networks:
+      - fraud-net
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - LISTENERS=PLAINTEXT://0.0.0.0:9092
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - 9090:8080 
+    depends_on:
+      - kafka
+    networks:
+      - fraud-net
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - DYNAMIC_CONFIG_ENABLED=true
+
+  mysql:
+    image: quay.io/debezium/example-mysql:2.1
+    container_name: mysql
+    ports:
+      - 3306:3306
+    networks:
+      - fraud-net
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASS}
+
+  postgres:
+    image: quay.io/debezium/example-postgres:2.1
+    container_name: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - fraud-net
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+
+  connect:
+    image: quay.io/debezium/connect:2.1
+    container_name: connect
+    ports:
+      - 8083:8083
+    depends_on:
+      - kafka
+      - mysql
+      - postgres
+    networks:
+      - fraud-net
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=my_connect_configs
+      - OFFSET_STORAGE_TOPIC=my_connect_offsets
+      - STATUS_STORAGE_TOPIC=my_connect_statuses
+
+  # --- Custom Services ---
+  
+  spark:
+    build: ./build/spark
+    container_name: spark
+    networks:
+      - fraud-net
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+      - REDIS_HOST=${REDIS_HOST}
+    command: >
+      /opt/spark/bin/spark-submit 
+      --conf spark.jars.ivy=/home/spark/ivy 
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1,com.redislabs:spark-redis_2.12:3.1.0 
+      /opt/spark/work-dir/redisSink.py
+
+  generator:
+    build: ./build/generator
+    container_name: generator
+    networks:
+      - fraud-net
+    depends_on:
+      - mysql
+      - postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASS=${POSTGRES_PASS}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - MYSQL_USER=root
+      - MYSQL_PASS=${MYSQL_ROOT_PASS}
+      - MYSQL_DB=${MYSQL_DB}
+
+  redis:
+    image: redis:7.2.4
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - fraud-net
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - fraud-net
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+networks:
+  fraud-net:
+    driver: bridge
+
+volumes:
+  grafana-storage:
